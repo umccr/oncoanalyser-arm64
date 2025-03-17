@@ -2,6 +2,7 @@ process CUSTOM_EXTRACTTARBALL {
     label 'process_single'
 
     conda "conda-forge::tar=1.34"
+    conda "conda-forge::pigz"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
         'https://depot.galaxyproject.org/singularity/ubuntu:20.04' :
         'quay.io/nf-core/ubuntu:20.04' }"
@@ -21,7 +22,7 @@ process CUSTOM_EXTRACTTARBALL {
     """
     mkdir -p ${meta.id}/
 
-    tar ${args} -xzvf ${tarball} --strip-components 1 -C ${meta.id}/
+    tar --use-compress-program="pigz" ${args} -xzvf ${tarball} --strip-components 1 -C ${meta.id}/
     """
 
     stub:
