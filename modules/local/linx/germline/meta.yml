@@ -29,7 +29,7 @@ input:
   - driver_gene_panel:
       type: file
       description: Driver gene panel file
-      pattern: "*.{csv}"
+      pattern: "*.{tsv}"
 output:
   - meta:
       type: map
@@ -43,5 +43,8 @@ output:
       type: file
       description: File containing software versions
       pattern: "versions.yml"
+  - command_files:
+      type: list
+      description: List of command files
 authors:
   - "@scwatts"

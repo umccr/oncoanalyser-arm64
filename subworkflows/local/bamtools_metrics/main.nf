@@ -10,13 +10,15 @@ include { BAMTOOLS } from '../../../modules/local/bamtools/main'
 workflow BAMTOOLS_METRICS {
     take:
     // Sample data
-    ch_inputs      // channel: [mandatory] [ meta ]
-    ch_tumor_bam   // channel: [mandatory] [ meta, bam, bai ]
-    ch_normal_bam  // channel: [mandatory] [ meta, bam, bai ]
+    ch_inputs              // channel: [mandatory] [ meta ]
+    ch_tumor_bam           // channel: [mandatory] [ meta, bam, bai ]
+    ch_normal_bam          // channel: [mandatory] [ meta, bam, bai ]
 
     // Reference data
-    genome_fasta   // channel: [mandatory] /path/to/genome_fasta
-    genome_version // channel: [mandatory] genome version
+    genome_fasta           // channel: [mandatory] /path/to/genome_fasta
+    genome_version         // channel: [mandatory] genome version
+    driver_gene_panel      // channel: [mandatory] /path/to/driver_gene_panel
+    ensembl_data_resources // channel: [mandatory] /path/to/ensembl_data_resources/
 
     main:
     // Channel for version.yml files
@@ -35,7 +37,7 @@ workflow BAMTOOLS_METRICS {
             ]
         }
         .branch { meta, bam, bai ->
-            def has_existing = Utils.hasExistingInput(meta, Constants.INPUT.BAMTOOLS_TUMOR)
+            def has_existing = Utils.hasExistingInput(meta, Constants.INPUT.BAMTOOLS_DIR_TUMOR)
             runnable: bam && !has_existing
             skip: true
                 return meta
@@ -52,7 +54,7 @@ workflow BAMTOOLS_METRICS {
             ]
         }
         .branch { meta, bam, bai ->
-            def has_existing = Utils.hasExistingInput(meta, Constants.INPUT.BAMTOOLS_NORMAL)
+            def has_existing = Utils.hasExistingInput(meta, Constants.INPUT.BAMTOOLS_DIR_NORMAL)
             runnable: bam && !has_existing
             skip: true
                 return meta
@@ -82,6 +84,8 @@ workflow BAMTOOLS_METRICS {
         ch_bamtools_inputs,
         genome_fasta,
         genome_version,
+        driver_gene_panel,
+        ensembl_data_resources,
     )
 
     ch_versions = ch_versions.mix(BAMTOOLS.out.versions)

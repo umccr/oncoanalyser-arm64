@@ -16,7 +16,7 @@ input:
       type: map
       description: |
         Groovy Map containing sample informatio
-        e.g. [id: 'sample_id', tumor_id: 'tumor_name', normal_id: 'normal_name']
+        e.g. [id: 'sample_id']
   - tumor_bam:
       type: file
       description: Tumor BAM file
@@ -32,7 +32,10 @@ input:
   - normal_bai:
       type: file
       description: Normal BAI file
-      pattern: "*.{bai}"
+      pattern: "*.{tsv,tsv.gz}"
+  - redux_tsvs:
+      type: list
+      description: REDUX MS files
   - genome_fasta:
       type: file
       description: Reference genome assembly FASTA file
@@ -52,18 +55,14 @@ input:
       type: file
       description: SAGE germline known hotspots file
       pattern: "*.{vcf.gz}"
-  - sage_actionable_panel:
-      type: file
-      description: SAGE actionable panel file
-      pattern: "*.{bed.gz}"
-  - sage_coverage_panel:
-      type: file
-      description: SAGE coverage gene panel file
-      pattern: "*.{bed.gz}"
   - sage_highconf_regions:
       type: file
       description: SAGE high confidence regions file
       pattern: "*.{bed.gz}"
+  - driver_gene_panel:
+      type: file
+      description: Driver gene panel file
+      pattern: "*.{tsv}"
   - ensembl_data_resources:
       type: directory
       description: HMF ensembl data resources directory
@@ -72,7 +71,7 @@ output:
       type: map
       description: |
         Groovy Map containing sample information
-        e.g. [id: 'sample_id', tumor_id: 'tumor_name', normal_id: 'normal_name']
+        e.g. [id: 'sample_id']
   - vcf:
       type: file
       description: VCF file
@@ -84,5 +83,8 @@ output:
       type: file
       description: File containing software versions
       pattern: "versions.yml"
+  - command_files:
+      type: list
+      description: List of command files
 authors:
   - "@scwatts"

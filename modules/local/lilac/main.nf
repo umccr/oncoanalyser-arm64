@@ -4,8 +4,8 @@ process LILAC {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/hmftools-lilac:1.6--hdfd78af_1' :
-        'biocontainers/hmftools-lilac:1.6--hdfd78af_1' }"
+        'https://depot.galaxyproject.org/singularity/hmftools-lilac:1.7.1--hdfd78af_0' :
+        'biocontainers/hmftools-lilac:1.7.1--hdfd78af_0' }"
 
     input:
     tuple val(meta), path(normal_dna_bam), path(normal_dna_bai), path(tumor_dna_bam), path(tumor_dna_bai), path(tumor_rna_bam), path(tumor_rna_bai), path(purple_dir)
@@ -13,16 +13,22 @@ process LILAC {
     path genome_fai
     val genome_ver
     path lilac_resources, stageAs: 'lilac_resources'
+    val targeted_mode
 
     output:
     tuple val(meta), path('lilac/'), emit: lilac_dir
     path 'versions.yml'            , emit: versions
+    path '.command.*'              , emit: command_files
 
     when:
     task.ext.when == null || task.ext.when
 
     script:
     def args = task.ext.args ?: ''
+
+    def xmx_mod = task.ext.xmx_mod ?: 0.75
+
+    def log_level_arg = task.ext.log_level ? "-log_level ${task.ext.log_level}" : ''
 
     def sample_name = getSampleName(meta, tumor_dna_bam, normal_dna_bam)
 
@@ -32,9 +38,11 @@ process LILAC {
 
     def purple_dir_arg = purple_dir ? "-purple_dir ${purple_dir}" : ''
 
+    def freq_score_penalty = targeted_mode ? '0.0018' : '0.0009'
+
     """
     lilac \\
-        -Xmx${Math.round(task.memory.bytes * 0.95)} \\
+        -Xmx${Math.round(task.memory.bytes * xmx_mod)} \\
         ${args} \\
         -sample ${sample_name} \\
         ${normal_bam_arg} \\
@@ -44,18 +52,21 @@ process LILAC {
         -ref_genome ${genome_fasta} \\
         -ref_genome_version ${genome_ver} \\
         -resource_dir ${lilac_resources} \\
+        -freq_score_penalty ${freq_score_penalty} \\
         -threads ${task.cpus} \\
+        ${log_level_arg} \\
         -output_dir lilac/
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        lilac: \$(lilac -version | sed 's/^.* //')
+        lilac: \$(lilac -version | sed -n '/^Lilac version / { s/^.* //p }')
     END_VERSIONS
     """
 
     stub:
     """
     mkdir -p lilac/
+
     touch lilac/placeholder
 
     echo -e '${task.process}:\\n  stub: noversions\\n' > versions.yml

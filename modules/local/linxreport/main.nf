@@ -4,8 +4,8 @@ process LINXREPORT {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/r-linxreport:1.0.0--r43hdfd78af_0' :
-        'biocontainers/r-linxreport:1.0.0--r43hdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/r-linxreport:1.1.0--r44hdfd78af_0' :
+        'biocontainers/r-linxreport:1.1.0--r44hdfd78af_0' }"
 
     input:
     tuple val(meta), path(linx_annotation_dir), path(linx_visualiser_dir)
@@ -13,6 +13,7 @@ process LINXREPORT {
     output:
     tuple val(meta), path('*_linx.html'), emit: html
     path 'versions.yml'                 , emit: versions
+    path '.command.*'                   , emit: command_files
 
     when:
     task.ext.when == null || task.ext.when

@@ -2,18 +2,19 @@ process CUSTOM_SLICE {
     tag "${meta.id}"
     label 'process_single'
 
-    conda "samtools=1.19.2"
+    conda "samtools=1.21"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/samtools:1.19.2--h50ea8bc_0' :
-        'biocontainers/samtools:1.19.2--h50ea8bc_0' }"
+        'https://depot.galaxyproject.org/singularity/samtools:1.21--h96c455f_1' :
+        'biocontainers/samtools:1.21--h96c455f_1' }"
 
     input:
     tuple val(meta), path(bam), path(bai)
     path bed
 
     output:
-    tuple val(meta), path("*sliced.bam"), path("*sliced.bam.bai"), emit: bam
+    tuple val(meta), path('*sliced.bam'), path('*sliced.bam.bai'), emit: bam
     path 'versions.yml'                                          , emit: versions
+    path '.command.*'                                            , emit: command_files
 
     when:
     task.ext.when == null || task.ext.when
@@ -34,7 +35,7 @@ process CUSTOM_SLICE {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        samtools: \$(echo \$(samtools --version 2>&1) | sed 's/^.*samtools //; s/Using.*\$//')
+        samtools: \$(samtools --version | sed -n '/^samtools / { s/^.* //p }')
     END_VERSIONS
     """
 

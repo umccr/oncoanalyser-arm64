@@ -23,9 +23,18 @@ input:
       type: file
       description: PURPLE SV VCF file
       pattern: "*.{vcf.gz}"
-  - genome_ver:
-      type: string
-      description: Reference genome version
+  - genome_fasta:
+      type: file
+      description: Reference genome assembly FASTA file
+      pattern: "*.{fa,fasta}"
+  - genome_fai:
+      type: file
+      description: Reference genome assembly fai file
+      pattern: "*.{fai}"
+  - genome_dict:
+      type: file
+      description: Reference genome assembly dict file
+      pattern: "*.{dict}"
 output:
   - meta:
       type: map
@@ -39,5 +48,8 @@ output:
       type: file
       description: File containing software versions
       pattern: "versions.yml"
+  - command_files:
+      type: list
+      description: List of command files
 authors:
   - "@scwatts"

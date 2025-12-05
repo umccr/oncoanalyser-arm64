@@ -4,8 +4,8 @@ process LINX_VISUALISER {
 
     conda "${moduleDir}/environment.yml"
     container "${ workflow.containerEngine == 'singularity' && !task.ext.singularity_pull_docker_container ?
-        'https://depot.galaxyproject.org/singularity/hmftools-linx:2.0--hdfd78af_0' :
-        'biocontainers/hmftools-linx:2.0--hdfd78af_0' }"
+        'https://depot.galaxyproject.org/singularity/hmftools-linx:2.1--hdfd78af_0' :
+        'biocontainers/hmftools-linx:2.1--hdfd78af_0' }"
 
     input:
     tuple val(meta), path(linx_annotation_dir)
@@ -15,6 +15,7 @@ process LINX_VISUALISER {
     output:
     tuple val(meta), path('plots/'), emit: plots
     path 'versions.yml'            , emit: versions
+    path '.command.*'              , emit: command_files
 
     when:
     task.ext.when == null || task.ext.when
@@ -22,6 +23,10 @@ process LINX_VISUALISER {
     script:
     def args = task.ext.args ?: ''
     def args2 = task.ext.args2 ?: ''
+
+    def xmx_mod = task.ext.xmx_mod ?: 0.75
+
+    def log_level_arg = task.ext.log_level ? "-log_level ${task.ext.log_level}" : ''
 
     """
     # NOTE(SW): the output plot directories are always required for ORANGE, which is straightfoward to handle with POSIX
@@ -43,7 +48,7 @@ process LINX_VISUALISER {
     # Generate all chromosome and cluster plots by default
 
     linx \\
-        -Xmx${Math.round(task.memory.bytes * 0.95)} \\
+        -Xmx${Math.round(task.memory.bytes * xmx_mod)} \\
         com.hartwig.hmftools.linx.visualiser.SvVisualiser \\
         ${args} \\
         -sample ${meta.sample_id} \\
@@ -52,6 +57,7 @@ process LINX_VISUALISER {
         -ensembl_data_dir ${ensembl_data_resources} \\
         -circos \$(which circos) \\
         -threads ${task.cpus} \\
+        ${log_level_arg} \\
         -plot_out plots/all/ \\
         -data_out data/all/
 
@@ -66,7 +72,7 @@ process LINX_VISUALISER {
     # https://github.com/hartwigmedical/hmftools/blob/linx-v1.24.1/linx/src/main/java/com/hartwig/hmftools/linx/visualiser/SampleData.java#L220-L236
 
     linx \\
-        -Xmx${Math.round(task.memory.bytes * 0.95)} \\
+        -Xmx${Math.round(task.memory.bytes * xmx_mod)} \\
         com.hartwig.hmftools.linx.visualiser.SvVisualiser \\
         ${args2} \\
         -sample ${meta.sample_id} \\
@@ -76,6 +82,7 @@ process LINX_VISUALISER {
         -circos \$(which circos) \\
         -plot_reportable \\
         -threads ${task.cpus} \\
+        ${log_level_arg} \\
         -plot_out plots/reportable/ \\
         -data_out data/reportable/
 
@@ -86,13 +93,14 @@ process LINX_VISUALISER {
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
-        linx: \$(linx -version | sed 's/^.* //')
+        linx: \$(linx -version | sed -n '/^Linx version / { s/^.* //p }')
     END_VERSIONS
     """
 
     stub:
     """
     mkdir -p plots/{all,reportable}/
+
     touch plots/{all,reportable}/placeholder
 
     echo -e '${task.process}:\n  stub: noversions\n' > versions.yml

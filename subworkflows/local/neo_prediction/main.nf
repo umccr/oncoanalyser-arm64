@@ -5,9 +5,9 @@
 import Constants
 import Utils
 
-include { ANNOTATE_FUSIONS } from '../../../modules/local/neo/annotate_fusions/main'
-include { NEO_FINDER       } from '../../../modules/local/neo/finder/main'
-include { NEO_SCORER       } from '../../../modules/local/neo/scorer/main'
+include { NEO_ANNOTATE_FUSIONS } from '../../../modules/local/neo/annotate_fusions/main'
+include { NEO_FINDER           } from '../../../modules/local/neo/finder/main'
+include { NEO_SCORER           } from '../../../modules/local/neo/scorer/main'
 
 workflow NEO_PREDICTION {
     take:
@@ -16,7 +16,7 @@ workflow NEO_PREDICTION {
     ch_tumor_rna_bam       // channel: [mandatory] [ meta, bam, bai ]
     ch_isofox              // channel: [mandatory] [ meta, isofox_dir ]
     ch_purple              // channel: [mandatory] [ meta, purple_dir ]
-    ch_sage_somatic_append // channel: [mandatory] [ meta, sage_append_vcf ]
+    ch_sage_somatic_append // channel: [mandatory] [ meta, sage_append_dir ]
     ch_lilac               // channel: [mandatory] [ meta, lilac_dir ]
     ch_linx                // channel: [mandatory] [ meta, linx_annotation_dir ]
 
@@ -141,7 +141,7 @@ workflow NEO_PREDICTION {
         }
 
     // Run process
-    ANNOTATE_FUSIONS(
+    NEO_ANNOTATE_FUSIONS(
         ch_isofox_inputs,
         isofox_read_length,
         genome_fasta,
@@ -150,13 +150,13 @@ workflow NEO_PREDICTION {
         ensembl_data_resources,
     )
 
-    ch_versions = ch_versions.mix(ANNOTATE_FUSIONS.out.versions)
+    ch_versions = ch_versions.mix(NEO_ANNOTATE_FUSIONS.out.versions)
 
     // Set outputs, restoring original meta
     // channel: [ meta, annotated_fusions ]
     ch_annotate_fusions_out = Channel.empty()
         .mix(
-            WorkflowOncoanalyser.restoreMeta(ANNOTATE_FUSIONS.out.annotated_fusions, ch_inputs),
+            WorkflowOncoanalyser.restoreMeta(NEO_ANNOTATE_FUSIONS.out.annotated_fusions, ch_inputs),
             ch_isofox_inputs_sorted.skip.map { meta -> [meta, []] },
         )
 
@@ -179,18 +179,22 @@ workflow NEO_PREDICTION {
             def meta_scorer = [
                 key: meta.group_id,
                 id: meta.group_id,
-                sample_id: Utils.getTumorDnaSampleName(meta),
+                sample_id: Utils.getTumorDnaSampleName(meta, primary: true),
                 cancer_type: meta[Constants.InfoField.CANCER_TYPE],
             ]
 
+            def sage_somatic_append_vcf = []
             if (Utils.hasTumorRna(meta)) {
                 meta_scorer.sample_rna_id = Utils.getTumorRnaSampleName(meta)
+
+                def sage_somatic_append_selected = Utils.selectCurrentOrExisting(sage_somatic_append, meta, Constants.INPUT.SAGE_APPEND_DIR_TUMOR)
+                sage_somatic_append_vcf = file(sage_somatic_append_selected).resolve("${meta_scorer.sample_id}.sage.append.vcf.gz")
             }
 
             def inputs = [
                 Utils.selectCurrentOrExisting(isofox_dir, meta, Constants.INPUT.ISOFOX_DIR),
                 Utils.selectCurrentOrExisting(purple_dir, meta, Constants.INPUT.PURPLE_DIR),
-                Utils.selectCurrentOrExisting(sage_somatic_append, meta, Constants.INPUT.SAGE_APPEND_VCF_TUMOR),
+                sage_somatic_append_vcf,
                 Utils.selectCurrentOrExisting(lilac_dir, meta, Constants.INPUT.LILAC_DIR),
                 neo_finder_dir,
                 annotated_fusions,
